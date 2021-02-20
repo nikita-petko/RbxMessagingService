@@ -3,10 +3,10 @@
 import { cookieWarningCapture } from '../../util/constants';
 import Http from 'axios';
 
-export const checkCookieAndPlaceIdInternalAsync = (cookie: string, placeId: number): Promise<void> => {
+export const checkCookieAndUniverseIdInternalAsync = (cookie: string, universeId: number): Promise<void> => {
 	return new Promise((resolve: (value: PromiseLike<void> | void) => void, reject: (reason?: any) => void) => {
 		if (cookie.length === 0) return reject("Cookie name can't be empty");
-		if (placeId < 1) return reject('The placeId is required to at least be >1');
+		if (universeId < 1) return reject('The placeId is required to at least be >1');
 		if (!cookie.match(cookieWarningCapture))
 			return reject("Cookie isn't valid, it requires the warning text to persistent");
 		Http('https://users.roblox.com/v1/users/authenticated', {

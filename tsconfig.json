@@ -14,6 +14,6 @@
 		"stripInternal": true,
 		"declaration": true,
 		"removeComments": false,
-		"declarationDir": "lib/types",
+		"declarationDir": "lib/types"
 	}
 }
