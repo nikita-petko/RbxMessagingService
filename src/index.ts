@@ -1,2 +1,2 @@
 export { init as InitializeAsync } from './Helpers/InitAuthenticatedUser';
-export { _DataStoreService as DataStoreService } from './Services/DataStoreService';
+export { _MessagingService as MessagingService } from './Services/MessagingService';
