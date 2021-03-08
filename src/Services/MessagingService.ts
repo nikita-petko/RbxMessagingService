@@ -57,6 +57,22 @@ export abstract class _MessagingService {
 			this.client.start();
 		});
 	}
+
+	/**
+	 * This function sends the provided message to all subscribers to the topic,
+	 * triggering their registered callbacks to be invoked.
+	 * Yields until the message is received by the backend.
+	 *
+	 * See also
+	 * ---
+	 * {@link https://developer.roblox.com/en-us/articles/cross-server-messaging|Cross-Server Messaging Guide}, explores how to communicate between game servers in greater detail with relevant code samples
+	 * {@link https://developer.roblox.com/en-us/api-reference/function/MessagingService/PublishAsync|MessagingService::PublishAsync}, sends the provided message to all subscribers to the topic, triggering their registered callbacks to be invoked
+	 * ---
+	 * @param {string} topic Determines where the message is sent
+	 * @param {Variant} message The data to include in the message
+	 * @returns {void} No return
+	 * @yields This is a yielding function. When called, it will pause the JavaScript thread that called the function until a result is ready to be returned, without interrupting other scripts.
+	 */
 	public static async PublishAsync<Variant extends any>(topic: string, message: Variant): Promise<void> {
 		return new Promise<void>(async (resumeFunction) => {
 			if (!this.client) {
