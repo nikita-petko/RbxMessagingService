@@ -1,6 +1,6 @@
 {
 	"name": "@mfd/rbxmessagingservice",
-	"version": "1.1.2",
+	"version": "1.2.0",
 	"description": "RbxMessagingService is a module that allows you to access roblox Message Router from your Node.js applications.",
 	"main": "lib/index.js",
 	"types": "lib/types",
