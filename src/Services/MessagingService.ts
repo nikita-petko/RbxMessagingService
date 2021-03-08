@@ -1,12 +1,16 @@
 import { RBXScriptConnection } from '../Classes/RBXScriptConnection';
 import { ClientSettings } from '../util/clientSettings';
-import { FASTLOG, FASTLOG1, FASTLOG3, FASTLOGS, LOGVARIABLE } from '../util/FastLog';
+import { FASTLOG, FASTLOG1, FASTLOGS, LOGVARIABLE } from '../util/FastLog';
 import { globals } from '../util/globals';
-import ssl from 'sslkeylog';
-ssl.hookAll();
 import signalr from '@mfd/signalr';
 
 const FLog = ClientSettings.GetFLogs();
+const FFlag = ClientSettings.GetFFlags();
+
+if (FFlag['Debug']) {
+	const ssl = require('sslkeylog');
+	ssl.hookAll();
+}
 
 LOGVARIABLE('MessagingService', 0);
 LOGVARIABLE('SignalR', 0);
@@ -19,21 +23,47 @@ LOGVARIABLE('SignalR', 0);
  * ---
  * Note: these limits are subject to change at any time.
  *
- * Size of message | 1kB
+ *### Size of message | 1kB
+ *
  * ---
  *
  * See also
  * ---
  * {@link https://developer.roblox.com/en-us/articles/cross-server-messaging|Cross-Server Messaging Guide}, explores how to communicate between game servers in greater detail with relevant code samples
  */
-export class _MessagingService {
-	private client = undefined;
-	private hasCredentials = false;
-	private isConnected = false;
-	private topics = new Map<string, (Data: any, Sent: number) => any>();
-	private hasCallback = false;
-	public async PublishAsync<Variant extends any>(topic: string, message: Variant): Promise<void> {
-		return new Promise<void>((resumeFunction) => {
+export abstract class _MessagingService {
+	private static client = undefined;
+	private static hasCredentials = false;
+	private static isConnected = false;
+	private static topics = new Map<string, (Data: any, Sent: number) => any>();
+	private static hasCallback = false;
+	private static ConnectionAttemptIsRunning = false;
+	private static async ConnectToTheHub(): Promise<void> {
+		return new Promise<void>((resumeFunction, errorFunction) => {
+			FASTLOG(FLog['SignalR'], '[FLog::SignalR] [state change] disconnected -> connecting');
+			this.ConnectionAttemptIsRunning = true;
+			this.client.on('connected', () => {
+				FASTLOG(FLog['SignalR'], '[FLog::SignalR] connecting -> connected');
+				this.isConnected = true;
+				this.ConnectionAttemptIsRunning = false;
+				resumeFunction();
+			});
+			this.client.on('error', (e) => {
+				FASTLOGS(FLog['SignalR'], '[FLog::SignalR] An error occured during connection: %s', e);
+				this.isConnected = false;
+				this.ConnectionAttemptIsRunning = false;
+				return errorFunction(`MessagingService: Service disconnected.`);
+			});
+			this.client.start();
+		});
+	}
+	public static async PublishAsync<Variant extends any>(topic: string, message: Variant): Promise<void> {
+		return new Promise<void>(async (resumeFunction) => {
+			if (!this.client) {
+				this.client = new signalr.client('https://messagerouter.api.roblox.com/v1/router/signalr', [
+					'MessageRouterHub',
+				]);
+			}
 			if (!globals.cookie && !globals.universeId) {
 				FASTLOG(FLog['MessagingService'], '[FLog::MessagingService] The user is not authenticated, aborting.');
 				throw new Error(
@@ -46,18 +76,8 @@ export class _MessagingService {
 				this.client.headers['X-Roblox-ChannelType'] = 'Test';
 				this.hasCredentials = true;
 			}
-			if (!this.isConnected) {
-				FASTLOG(FLog['SignalR'], '[FLog::SignalR] [state change] disconnected -> connecting');
-				this.client.on('connected', () => {
-					FASTLOG(FLog['SignalR'], '[FLog::SignalR] connecting -> connected');
-					this.isConnected = true;
-				});
-				this.client.on('error', (e) => {
-					FASTLOGS(FLog['SignalR'], '[FLog::SignalR] An error occured during connection: %s', e);
-					this.isConnected = false;
-					throw new Error(`MessagingService: Service disconnected.`);
-				});
-				this.client.start();
+			if (!this.isConnected && !this.ConnectionAttemptIsRunning) {
+				await this.ConnectToTheHub();
 			}
 			const DFInt = ClientSettings.GetDFInts();
 			if (topic === undefined) {
@@ -138,11 +158,16 @@ export class _MessagingService {
 	 * @returns {RBXScriptConnection} Connection that can be used to unsubscribe from the topic
 	 * @yields This is a yielding function. When called, it will pause the JavaScript thread that called the function until a result is ready to be returned, without interrupting other scripts.
 	 */
-	public async SubscribeAsync<Variant extends any>(
+	public static async SubscribeAsync<Variant extends any>(
 		topic: string,
 		callback: (Data: Variant, Sent: number) => Variant,
 	): Promise<RBXScriptConnection> {
-		return new Promise<RBXScriptConnection>((resumeFunction) => {
+		return new Promise<RBXScriptConnection>(async (resumeFunction) => {
+			if (!this.client) {
+				this.client = new signalr.client('https://messagerouter.api.roblox.com/v1/router/signalr', [
+					'MessageRouterHub',
+				]);
+			}
 			if (!globals.cookie && !globals.universeId) {
 				FASTLOG(FLog['MessagingService'], '[FLog::MessagingService] The user is not authenticated, aborting.');
 				throw new Error(
@@ -155,18 +180,8 @@ export class _MessagingService {
 				this.client.headers['X-Roblox-ChannelType'] = 'Test';
 				this.hasCredentials = true;
 			}
-			if (!this.isConnected) {
-				FASTLOG(FLog['SignalR'], '[FLog::SignalR] [state change] disconnected -> connecting');
-				this.client.on('connected', () => {
-					FASTLOG(FLog['SignalR'], '[FLog::SignalR] connecting -> connected');
-					this.isConnected = true;
-				});
-				this.client.on('error', (e) => {
-					FASTLOGS(FLog['SignalR'], '[FLog::SignalR] An error occured during connection: %s', e);
-					this.isConnected = false;
-					throw new Error(`MessagingService: Service disconnected.`);
-				});
-				this.client.start();
+			if (!this.isConnected && !this.ConnectionAttemptIsRunning) {
+				await this.ConnectToTheHub();
 			}
 			const DFInt = ClientSettings.GetDFInts();
 			if (topic === undefined) {
@@ -203,13 +218,6 @@ export class _MessagingService {
 			}
 			if (!this.hasCallback) {
 				this.client.connection.hub.on('MessageRouterHub', 'Message', (topicName, data) => {
-					FASTLOG3(
-						FLog['SignalR'],
-						'message -> %s -> %s -> %f',
-						topicName,
-						JSON.parse(data).Data || 'null',
-						parseFloat(JSON.parse(data).Sent),
-					);
 					if (this.topics.get(topicName)) {
 						this.topics.get(topicName)(JSON.parse(data).Data, parseFloat(JSON.parse(data).Sent));
 					}
@@ -218,12 +226,5 @@ export class _MessagingService {
 			}
 			resumeFunction(new RBXScriptConnection(this.client));
 		});
-	}
-	constructor() {
-		if (!this.client) {
-			this.client = new signalr.client('https://messagerouter.api.roblox.com/v1/router/signalr', [
-				'MessageRouterHub',
-			]);
-		}
 	}
 }
