@@ -1,8 +1,9 @@
+<h1>Closed until further notice.</h1>
+<br/>
 <h4 align="center">A Node.js wrapper for interacting with the Roblox Message Router API.</h4>
 <br>
 <p align="center">
     <a href="https://standardjs.com"><img src="https://img.shields.io/badge/code_style-standard-blue.svg?style=flat-square" alt="JavaScript Style Guide"/></a>
-    <a href="https://discord.gg/EDXNdAT"><img src="https://img.shields.io/badge/discord-roblox%20api%20chat-blue.svg?style=flat-square" alt="Roblox API Discord"/></a>
     <a href="https://npmjs.org/@mfd/rbxmessagingservice"><img src="https://img.shields.io/npm/v/@mfd/rbxmessagingservice.svg?style=flat-square" alt="NPM package"/></a>
 	<a href="https://npmjs.org/@mfd/rbxmessagingservice"><img src="https://img.shields.io/npm/dm/@mfd/rbxmessagingservice.svg?style=flat-square" alt="downloads"/></a>
 </p>
@@ -64,7 +65,3 @@ async function startApp() {
 	await MessagingService.PublishAsync('TopicExample', 'Some EPIC data!');
 }
 ```
-
-## Credits
-
--   [nsg](https://github.com/mfd-nsg) - ROBLOX Contractor for the engine team.
